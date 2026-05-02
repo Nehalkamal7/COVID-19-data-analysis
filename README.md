@@ -2,8 +2,6 @@
 
 A small Python project that generates **synthetic** COVID-style epidemiological data, runs statistical summaries, renders Matplotlib charts, and serves an interactive **Flask** dashboard in the browser.
 
-> **Note:** All figures and metrics are based on simulated data for learning and visualization—not real outbreak statistics.
-
 ## Features
 
 - **Synthetic datasets** — Multi-country daily cases/deaths, vaccination uptake by vaccine type, age vs. severity, and correlation-style country metrics (`data_generator.py`).
