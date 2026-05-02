@@ -1,34 +1,53 @@
-# 🦠 COVID-19 Analytics Dashboard
-> A full-stack Python project that generates realistic COVID-19 epidemiological datasets,
-> runs statistical analysis, renders publication-quality charts, and serves an interactive
-> Flask web dashboard — all configurable via environment variables with **zero code changes**.
----
-## ✨ Features
-| Feature | Description |
-|---------|-------------|
-| 📊 **4 Chart Types** | Line trends, stacked bar (vaccination), dual heatmaps, scatter correlation grid |
-| 🌍 **20 Countries** | USA, India, Brazil, UK, Germany, France, Italy, Spain, Canada, Japan + 10 more |
-| 💉 **8 Vaccines** | Pfizer, Moderna, AstraZeneca, J&J, Sinovac, Novavax, Sputnik V, Covaxin |
-| 📁 **CSV Support** | Drop your own `data/time_series.csv` — the app auto-detects and uses it |
-| 🎨 **Dynamic Colors** | Auto-scaling palette: tab10 → tab20 → HSL golden-angle (works for any N countries) |
-| ⚙️ **Env-var config** | Change every setting without touching source code |
-| 🌐 **REST API** | 7 JSON endpoints powering the dashboard |
-| 🖥️ **One-click launch** | `START_DASHBOARD.bat` opens everything automatically (Windows) |
----
-## 📁 Project Structure
-covid_project/ │ ├── app.py # Flask web server + all /api/* routes ├── main.py # CLI pipeline (generate → analyse → charts) ├── config.py # Central settings (env vars, helpers) ├── data_generator.py # Synthetic + CSV data generators ├── visualizations.py # All 4 Matplotlib/Seaborn chart functions ├── analysis.py # Console statistical summaries │ ├── data/ │ ├── time_series.csv # 14,600-row sample (20 countries × 730 days) │ └── time_series.example.csv # Minimal CSV format example │ ├── templates/ │ └── index.html # Dark-themed dashboard UI │ ├── output/ # Auto-generated PNG charts land here │ ├── 1_line_daily_trends.png │ ├── 2_bar_vaccination.png │ ├── 3_heatmap.png │ └── 4_scatter_correlations.png │ ├── requirements.txt └── START_DASHBOARD.bat # Windows one-click launcher
+🦠 COVID-19 Analytics Dashboard
+A full-stack Python project that generates realistic COVID-19 epidemiological datasets, runs statistical analysis, renders publication-quality charts, and serves an interactive Flask web dashboard — all configurable via environment variables with zero code changes.
 
----
-## 🚀 Quick Start
-### Option A — Windows (One Click)
-Double-click **`START_DASHBOARD.bat`**
+✨ Features
+Feature	Description
+📊 4 Chart Types	Line trends, stacked bar (vaccination), dual heatmaps, scatter correlation grid
+🌍 20 Countries	USA, India, Brazil, UK, Germany, France, Italy, Spain, Canada, Japan + 10 more
+💉 8 Vaccines	Pfizer, Moderna, AstraZeneca, J&J, Sinovac, Novavax, Sputnik V, Covaxin
+📁 CSV Support	Drop your own data/time_series.csv — the app auto-detects and uses it
+🎨 Dynamic Colors	Auto-scaling palette: tab10 → tab20 → HSL golden-angle (works for any N countries)
+⚙️ Env-var config	Change every setting without touching source code
+🌐 REST API	7 JSON endpoints powering the dashboard
+🖥️ One-click launch	START_DASHBOARD.bat opens everything automatically (Windows)
+📁 Project Structure
+covid_project/
+│
+├── app.py               # Flask web server + all /api/* routes
+├── main.py              # CLI pipeline (generate → analyse → charts)
+├── config.py            # Central settings (env vars, helpers)
+├── data_generator.py    # Synthetic + CSV data generators
+├── visualizations.py    # All 4 Matplotlib/Seaborn chart functions
+├── analysis.py          # Console statistical summaries
+│
+├── data/
+│   ├── time_series.csv          # 14,600-row sample (20 countries × 730 days)
+│   └── time_series.example.csv  # Minimal CSV format example
+│
+├── templates/
+│   └── index.html       # Dark-themed dashboard UI
+│
+├── output/              # Auto-generated PNG charts land here
+│   ├── 1_line_daily_trends.png
+│   ├── 2_bar_vaccination.png
+│   ├── 3_heatmap.png
+│   └── 4_scatter_correlations.png
+│
+├── requirements.txt
+└── START_DASHBOARD.bat  # Windows one-click launcher
+🚀 Quick Start
+Option A — Windows (One Click)
+Double-click START_DASHBOARD.bat
+
 It will:
-1. Detect your Python installation
-2. Install dependencies silently
-3. Start the Flask server in a separate window
-4. Open `http://127.0.0.1:5000` in your browser automatically
-### Option B — Manual (any OS)
-```bash
+
+Detect your Python installation
+Install dependencies silently
+Start the Flask server in a separate window
+Open http://127.0.0.1:5000 in your browser automatically
+Option B — Manual (any OS)
+bash
 # 1. Clone the repo
 git clone https://github.com/YOUR_USERNAME/covid_project.git
 cd covid_project
