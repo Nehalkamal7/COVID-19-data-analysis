@@ -7,16 +7,17 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
+from data_generator import COUNTRIES as DEFAULT_COUNTRY_ORDER
+
 sns.set_theme(style="darkgrid", palette="muted")
 PALETTE = sns.color_palette("tab10")
 OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-COUNTRY_COLORS = {
-    c: PALETTE[i] for i, c in enumerate(
-        ["USA", "India", "Brazil", "UK", "Germany", "France", "Italy", "Spain"]
-    )
-}
+
+def country_colors(countries: list[str]) -> dict[str, tuple]:
+    """Stable colors for labels (cycles palette when len(countries) > 10)."""
+    return {c: PALETTE[i % len(PALETTE)] for i, c in enumerate(countries)}
 
 
 def plot_daily_cases_line(df_ts: pd.DataFrame, countries: list[str] | None = None,
@@ -25,8 +26,9 @@ def plot_daily_cases_line(df_ts: pd.DataFrame, countries: list[str] | None = Non
     Line chart: 7-day rolling average of new daily cases for selected countries.
     """
     if countries is None:
-        countries = ["USA", "India", "Brazil", "UK", "Germany"]
+        countries = DEFAULT_COUNTRY_ORDER[:6]
 
+    cmap = country_colors(countries)
     fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
     fig.suptitle("COVID-19 Daily Trends (7-day Rolling Average)",
                  fontsize=16, fontweight="bold", y=0.98)
@@ -35,7 +37,7 @@ def plot_daily_cases_line(df_ts: pd.DataFrame, countries: list[str] | None = Non
         sub = df_ts[df_ts["country"] == country].copy()
         sub["rolling_cases"] = sub["new_cases"].rolling(rolling_window).mean()
         sub["rolling_deaths"] = sub["new_deaths"].rolling(rolling_window).mean()
-        color = COUNTRY_COLORS.get(country, "gray")
+        color = cmap.get(country, "gray")
         axes[0].plot(sub["date"], sub["rolling_cases"], label=country,
                      color=color, linewidth=2)
         axes[1].plot(sub["date"], sub["rolling_deaths"], label=country,
@@ -57,7 +59,7 @@ def plot_daily_cases_line(df_ts: pd.DataFrame, countries: list[str] | None = Non
 
     fig.tight_layout()
     fig.savefig(OUTPUT_DIR / "1_line_daily_trends.png", dpi=150, bbox_inches="tight")
-    print("  ✓ Saved: output/1_line_daily_trends.png")
+    print("  Saved: output/1_line_daily_trends.png")
     return fig
 
 
@@ -83,7 +85,8 @@ def plot_vaccination_bar(df_vax: pd.DataFrame) -> Figure:
     axes[0].spines["right"].set_visible(False)
 
     total_vax = df_vax.groupby("country")["vaccinated_pct"].sum().sort_values()
-    colors_sorted = [COUNTRY_COLORS[c] for c in total_vax.index]
+    cmap_v = country_colors(list(total_vax.index))
+    colors_sorted = [cmap_v[c] for c in total_vax.index]
     bars = axes[1].barh(total_vax.index, total_vax.values,
                         color=colors_sorted, edgecolor="white", height=0.6)
     for bar, val in zip(bars, total_vax.values):
@@ -97,7 +100,7 @@ def plot_vaccination_bar(df_vax: pd.DataFrame) -> Figure:
 
     fig.tight_layout()
     fig.savefig(OUTPUT_DIR / "2_bar_vaccination.png", dpi=150, bbox_inches="tight")
-    print("  ✓ Saved: output/2_bar_vaccination.png")
+    print("  Saved: output/2_bar_vaccination.png")
     return fig
 
 
@@ -142,7 +145,7 @@ def plot_heatmaps(df_ts: pd.DataFrame, df_age: pd.DataFrame) -> Figure:
 
     fig.tight_layout()
     fig.savefig(OUTPUT_DIR / "3_heatmap.png", dpi=150, bbox_inches="tight")
-    print("  ✓ Saved: output/3_heatmap.png")
+    print("  Saved: output/3_heatmap.png")
     return fig
 
 
@@ -156,7 +159,8 @@ def plot_scatter_analysis(df_corr: pd.DataFrame) -> Figure:
 
 
     bubble = (df_corr["population"] / df_corr["population"].max()) * 800 + 100
-    colors = [COUNTRY_COLORS[c] for c in df_corr["country"]]
+    cmap_c = country_colors(list(df_corr["country"]))
+    colors = [cmap_c[c] for c in df_corr["country"]]
 
     plots = [
         ("vaccination_rate", "deaths_per_million",
@@ -204,5 +208,5 @@ def plot_scatter_analysis(df_corr: pd.DataFrame) -> Figure:
 
     fig.tight_layout()
     fig.savefig(OUTPUT_DIR / "4_scatter_correlations.png", dpi=150, bbox_inches="tight")
-    print("  ✓ Saved: output/4_scatter_correlations.png")
+    print("  Saved: output/4_scatter_correlations.png")
     return fig

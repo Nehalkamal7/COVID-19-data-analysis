@@ -10,9 +10,15 @@ warnings.filterwarnings("ignore")
 import os
 import io
 import base64
-import json
 from pathlib import Path
 from flask import Flask, render_template, jsonify, send_from_directory
+
+from config import (
+    RANDOM_SEED,
+    TIME_SERIES_START,
+    TIME_SERIES_PERIODS,
+    time_series_csv_path,
+)
 
 import matplotlib
 matplotlib.use("Agg")
@@ -20,8 +26,11 @@ import matplotlib.pyplot as plt
 
 # Import your existing modules
 from data_generator import (
-    generate_time_series, generate_vaccination_data,
-    generate_age_severity_data, generate_correlation_data,
+    set_random_seed,
+    resolve_time_series,
+    generate_vaccination_data,
+    generate_age_severity_data,
+    generate_correlation_data,
 )
 from visualizations import (
     plot_daily_cases_line, plot_vaccination_bar,
@@ -33,14 +42,18 @@ OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # ── Generate all data once on startup ────────────────────────────────────────
-print("⚙  Generating datasets...")
-DF_TS   = generate_time_series(start="2020-01-01", periods=730)
+print("Generating datasets...")
+set_random_seed()
+TS_CSV_PATH = time_series_csv_path()
+DF_TS, TIME_SERIES_SOURCE = resolve_time_series()
 DF_VAX  = generate_vaccination_data()
 DF_AGE  = generate_age_severity_data()
 DF_CORR = generate_correlation_data()
+print(f"   Time series: {TIME_SERIES_SOURCE}"
+      + (f" ({TS_CSV_PATH})" if TS_CSV_PATH else ""))
 
 # ── Pre-render charts to disk ─────────────────────────────────────────────────
-print("🎨 Rendering charts...")
+print("Rendering charts...")
 for fig_fn, kwargs in [
     (plot_daily_cases_line, {"df_ts": DF_TS}),
     (plot_vaccination_bar,  {"df_vax": DF_VAX}),
@@ -49,7 +62,7 @@ for fig_fn, kwargs in [
 ]:
     fig = fig_fn(**kwargs)
     plt.close(fig)
-print("✅ Ready!\n")
+print("Ready.\n")
 
 
 def fig_to_b64(fig):
@@ -104,6 +117,18 @@ def api_timeline():
     return jsonify(data.to_dict(orient="records"))
 
 
+@app.route("/api/config")
+def api_config():
+    """Runtime data settings (seed, periods, synthetic vs CSV time series)."""
+    return jsonify({
+        "random_seed": RANDOM_SEED,
+        "time_series_start": TIME_SERIES_START,
+        "time_series_periods": TIME_SERIES_PERIODS,
+        "time_series_source": TIME_SERIES_SOURCE,
+        "time_series_csv": str(TS_CSV_PATH) if TS_CSV_PATH else None,
+    })
+
+
 @app.route("/api/summary")
 def api_summary():
     total_cases  = int(DF_TS["new_cases"].sum())
@@ -121,5 +146,5 @@ def api_summary():
 
 
 if __name__ == "__main__":
-    print("🌐  Dashboard → http://localhost:5000\n")
+    print("Dashboard: http://localhost:5000\n")
     app.run(debug=True, port=5000)

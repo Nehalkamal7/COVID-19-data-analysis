@@ -1,32 +1,124 @@
 """
 data_generator.py
 Generates realistic synthetic COVID-19 data for analysis.
+Optional: load daily time series from CSV (see config / data/time_series.csv).
 """
+
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
+from pathlib import Path
 
-np.random.seed(42)
+from config import (
+    RANDOM_SEED,
+    TIME_SERIES_START,
+    TIME_SERIES_PERIODS,
+    time_series_csv_path,
+)
 
-COUNTRIES = ["USA", "India", "Brazil", "UK", "Germany", "France", "Italy", "Spain"]
+COUNTRIES = [
+    "USA", "India", "Brazil", "UK", "Germany", "France", "Italy", "Spain",
+    "Canada", "Japan", "Mexico", "South Korea", "Australia",
+]
 COUNTRY_POP = {
-    "USA": 331_000_000, "India": 1_380_000_000, "Brazil": 213_000_000,
-    "UK": 67_000_000, "Germany": 83_000_000, "France": 67_000_000,
-    "Italy": 60_000_000, "Spain": 47_000_000,
+    "USA": 331_000_000,
+    "India": 1_380_000_000,
+    "Brazil": 213_000_000,
+    "UK": 67_000_000,
+    "Germany": 83_000_000,
+    "France": 67_000_000,
+    "Italy": 60_000_000,
+    "Spain": 47_000_000,
+    "Canada": 38_000_000,
+    "Japan": 125_000_000,
+    "Mexico": 128_000_000,
+    "South Korea": 51_000_000,
+    "Australia": 26_000_000,
 }
-VACCINES = ["Pfizer", "Moderna", "AstraZeneca", "J&J", "Sinovac"]
+VACCINES = [
+    "Pfizer", "Moderna", "AstraZeneca", "J&J", "Sinovac",
+    "Novavax", "Sputnik V",
+]
 AGE_GROUPS = ["0-17", "18-34", "35-49", "50-64", "65+"]
 
 
-def generate_time_series(start="2020-01-01", periods=730) -> pd.DataFrame:
-    """Daily cases/deaths/recoveries per country over ~2 years."""
+def set_random_seed(seed: int | None = None) -> None:
+    """Set NumPy RNG for reproducible synthetic data."""
+    np.random.seed(RANDOM_SEED if seed is None else seed)
+
+
+def load_time_series_from_csv(path: str | Path) -> pd.DataFrame:
+    """
+    Load daily time series from CSV.
+
+    Required columns: date, country, new_cases, new_deaths
+    Optional: new_recoveries (defaults computed), cumulative_* (computed if missing)
+    """
+    path = Path(path)
+    df = pd.read_csv(path)
+    df.columns = [str(c).strip().lower() for c in df.columns]
+    required = {"date", "country", "new_cases", "new_deaths"}
+    if not required.issubset(df.columns):
+        raise ValueError(
+            f"CSV {path} must include columns {sorted(required)}; got {sorted(df.columns)}"
+        )
+    df["date"] = pd.to_datetime(df["date"])
+    df["country"] = df["country"].astype(str).str.strip()
+    df["new_cases"] = pd.to_numeric(df["new_cases"], errors="coerce").fillna(0).astype(int)
+    df["new_deaths"] = pd.to_numeric(df["new_deaths"], errors="coerce").fillna(0).astype(int)
+
+    if "new_recoveries" not in df.columns:
+        df["new_recoveries"] = (df["new_cases"].astype(float) * 0.9).clip(lower=0).round().astype(int)
+    else:
+        df["new_recoveries"] = pd.to_numeric(df["new_recoveries"], errors="coerce").fillna(0).astype(int)
+
+    df = df.sort_values(["country", "date"]).reset_index(drop=True)
+
+    parts: list[pd.DataFrame] = []
+    for _, g in df.groupby("country", sort=False):
+        g = g.sort_values("date").copy()
+        if "cumulative_cases" not in g.columns:
+            g["cumulative_cases"] = g["new_cases"].cumsum()
+        else:
+            g["cumulative_cases"] = pd.to_numeric(g["cumulative_cases"], errors="coerce").fillna(0).astype(int)
+        if "cumulative_deaths" not in g.columns:
+            g["cumulative_deaths"] = g["new_deaths"].cumsum()
+        else:
+            g["cumulative_deaths"] = pd.to_numeric(g["cumulative_deaths"], errors="coerce").fillna(0).astype(int)
+        parts.append(g)
+    return pd.concat(parts, ignore_index=True)
+
+
+def resolve_time_series(
+    start: str | None = None,
+    periods: int | None = None,
+) -> tuple[pd.DataFrame, str]:
+    """
+    Return time-series DataFrame and source label: 'csv' or 'synthetic'.
+    When a CSV is configured and exists, synthetic wave parameters are skipped.
+    """
+    csv_path = time_series_csv_path()
+    if csv_path is not None:
+        return load_time_series_from_csv(csv_path), "csv"
+    return (
+        generate_time_series(
+            start=start or TIME_SERIES_START,
+            periods=periods if periods is not None else TIME_SERIES_PERIODS,
+        ),
+        "synthetic",
+    )
+
+
+def generate_time_series(start: str | None = None, periods: int | None = None) -> pd.DataFrame:
+    """Daily cases/deaths/recoveries per country."""
+    start = start or TIME_SERIES_START
+    periods = periods if periods is not None else TIME_SERIES_PERIODS
     dates = pd.date_range(start=start, periods=periods)
     records = []
 
     for country in COUNTRIES:
         pop = COUNTRY_POP[country]
-        # Simulate 3 waves with gaussian peaks
         wave_centers = [60, 240, 480]
         wave_heights = np.random.uniform(0.6, 1.4, 3)
 
