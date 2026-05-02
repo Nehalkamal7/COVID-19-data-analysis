@@ -7,8 +7,6 @@ echo  ==========================================
 echo    COVID-19 Analytics Dashboard
 echo  ==========================================
 echo.
-echo  Starting server, please wait...
-echo.
 
 :: Try to find python
 where python >nul 2>&1
@@ -27,19 +25,30 @@ if %errorlevel% == 0 (
 )
 
 :: Install requirements silently
-echo  Installing dependencies...
+echo  Installing/checking dependencies...
 %PYTHON% -m pip install -r requirements.txt --quiet
 
 echo.
-echo  Launching dashboard in your browser...
+echo  Starting Flask server...
 echo.
 
-:: Open browser after 3 seconds
-start "" timeout /t 3 >nul & start http://127.0.0.1:5000
+:: Start Flask server in a new window (background)
+start "COVID-19 Flask Server" cmd /k "%PYTHON% app.py"
 
-:: Start the Flask app
-%PYTHON% app.py
+:: Wait 4 seconds for the server to fully start
+echo  Waiting for server to start...
+timeout /t 4 /nobreak >nul
+
+:: Open browser automatically
+echo  Opening dashboard in browser...
+start "" http://127.0.0.1:5000
 
 echo.
-echo  Server stopped.
+echo  ==========================================
+echo   Dashboard is running at:
+echo   http://127.0.0.1:5000
+echo  ==========================================
+echo.
+echo  Close the "COVID-19 Flask Server" window to stop the server.
+echo.
 pause
